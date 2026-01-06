@@ -32,8 +32,8 @@ func (app *application) mount() http.Handler {
 	// if request takes more than 60 seconds, timeout then just stop
 	r.Use(middleware.Timeout(60 * time.Second))
 	// user->handler GET /products->service get products->repo SELECT * FROM products
-
-	handler := products.NewHandler(nil)
+	productService := products.NewService()
+	handler := products.NewHandler(productService)
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("hello world"))
 	})
