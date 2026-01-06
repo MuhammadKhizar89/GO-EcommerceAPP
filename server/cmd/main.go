@@ -9,7 +9,9 @@ import (
 func main() {
 	cfg := config{
 		addr: ":8080",
-		db:   dbConfig{},
+		db: dbConfig{
+			dsn: "",
+		},
 	}
 	api := application{
 		config: cfg,
