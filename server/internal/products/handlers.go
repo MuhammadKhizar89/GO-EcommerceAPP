@@ -14,13 +14,11 @@ func NewHandler(service Service) *handler {
 }
 
 func (h *handler) ListProducts(w http.ResponseWriter, r *http.Request) {
-	err := h.service.ListProducts(r.Context())
+	products, err := h.service.ListProducts(r.Context())
 	if err != nil {
 		response.WriteJson(w, http.StatusInternalServerError, response.GernalResponse{Success: false, Message: err.Error(), Data: nil})
 		return
 	}
-	products := struct {
-		Products []string `json:"products"`
-	}{}
+
 	response.WriteJson(w, http.StatusOK, response.GernalResponse{Success: true, Message: "success", Data: products})
 }

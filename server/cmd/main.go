@@ -1,28 +1,44 @@
 package main
 
 import (
+	"context"
 	"log"
 	"log/slog"
 	"os"
+	"server/internal/env"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using OS env vars")
+	}
 	cfg := config{
-		addr: ":8080",
+		addr: env.GetEnv("PORT", "8080"),
 		db: dbConfig{
-			dsn: "",
+			dsn: env.GetEnv("GOOSE_DBSTRING", ""),
 		},
 	}
+
+	ctx := context.Background()
+
+	conn, err := pgx.Connect(ctx, cfg.db.dsn)
+	if err != nil {
+		panic(err)
+	}
+	defer conn.Close(ctx)
+
 	api := application{
 		config: cfg,
+		dbConn: conn,
 	}
-	// logger
-	// htto kay andr middleware lga diye jo info get kr rhy hn
-	// so hm aik global logger bna rhy hn jo zada sahi sy hmy btay kay us request pr jo bhi  log ho rha hy us ka pattern kia ho
+
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
+
 	if err := api.run(api.mount()); err != nil {
 		log.Fatal(err)
-		os.Exit(1)
 	}
 }

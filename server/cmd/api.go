@@ -3,15 +3,18 @@ package main
 import (
 	"log"
 	"net/http"
+	repo "server/internal/adapters/postgresql/sqlc"
 	"server/internal/products"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5"
 )
 
 type application struct {
 	config config
+	dbConn *pgx.Conn
 }
 
 type config struct {
@@ -32,7 +35,7 @@ func (app *application) mount() http.Handler {
 	// if request takes more than 60 seconds, timeout then just stop
 	r.Use(middleware.Timeout(60 * time.Second))
 	// user->handler GET /products->service get products->repo SELECT * FROM products
-	productService := products.NewService()
+	productService := products.NewService(repo.New(app.dbConn))
 	handler := products.NewHandler(productService)
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("hello world"))
@@ -43,7 +46,7 @@ func (app *application) mount() http.Handler {
 
 func (app *application) run(h http.Handler) error {
 	srv := &http.Server{
-		Addr:         app.config.addr,
+		Addr:         ":" + app.config.addr,
 		Handler:      h,
 		WriteTimeout: time.Second * 30,
 		ReadTimeout:  time.Second * 10,

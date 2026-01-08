@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS products (
     name VARCHAR(255) NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
     quantity INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP NOT NULL DEFAULT now
+    created_at TIMESTAMP NOT NULL DEFAULT now()
 )
 -- +goose StatementEnd
 
