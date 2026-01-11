@@ -7,6 +7,8 @@ package repo
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createOrder = `-- name: CreateOrder :one
@@ -56,6 +58,29 @@ func (q *Queries) CreateOrderItem(ctx context.Context, arg CreateOrderItemParams
 	return i, err
 }
 
+const createProduct = `-- name: CreateProduct :one
+INSERT INTO products (name, price, quantity) VALUES ($1, $2, $3) RETURNING id, name, price, quantity, created_at
+`
+
+type CreateProductParams struct {
+	Name     string         `json:"name"`
+	Price    pgtype.Numeric `json:"price"`
+	Quantity int32          `json:"quantity"`
+}
+
+func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error) {
+	row := q.db.QueryRow(ctx, createProduct, arg.Name, arg.Price, arg.Quantity)
+	var i Product
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Price,
+		&i.Quantity,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const findProductByID = `-- name: FindProductByID :one
 SELECT id, name, price, quantity, created_at
 FROM products
@@ -73,6 +98,116 @@ func (q *Queries) FindProductByID(ctx context.Context, id int32) (Product, error
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const findProductsByIDs = `-- name: FindProductsByIDs :many
+SELECT id, name, price, quantity
+FROM products
+WHERE id = ANY($1::int[])
+`
+
+type FindProductsByIDsRow struct {
+	ID       int32          `json:"id"`
+	Name     string         `json:"name"`
+	Price    pgtype.Numeric `json:"price"`
+	Quantity int32          `json:"quantity"`
+}
+
+func (q *Queries) FindProductsByIDs(ctx context.Context, dollar_1 []int32) ([]FindProductsByIDsRow, error) {
+	rows, err := q.db.Query(ctx, findProductsByIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FindProductsByIDsRow
+	for rows.Next() {
+		var i FindProductsByIDsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Price,
+			&i.Quantity,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getOrderItemsByOrderID = `-- name: GetOrderItemsByOrderID :many
+SELECT id, order_id, product_id, quantity, price
+FROM order_items
+WHERE order_id = $1
+`
+
+type GetOrderItemsByOrderIDRow struct {
+	ID        int32 `json:"id"`
+	OrderID   int32 `json:"order_id"`
+	ProductID int32 `json:"product_id"`
+	Quantity  int32 `json:"quantity"`
+	Price     int32 `json:"price"`
+}
+
+func (q *Queries) GetOrderItemsByOrderID(ctx context.Context, orderID int32) ([]GetOrderItemsByOrderIDRow, error) {
+	rows, err := q.db.Query(ctx, getOrderItemsByOrderID, orderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetOrderItemsByOrderIDRow
+	for rows.Next() {
+		var i GetOrderItemsByOrderIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrderID,
+			&i.ProductID,
+			&i.Quantity,
+			&i.Price,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getOrdersByCustomerID = `-- name: GetOrdersByCustomerID :many
+SELECT id, created_at
+FROM orders
+WHERE customer_id = $1
+ORDER BY created_at DESC
+`
+
+type GetOrdersByCustomerIDRow struct {
+	ID        int32              `json:"id"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+func (q *Queries) GetOrdersByCustomerID(ctx context.Context, customerID int32) ([]GetOrdersByCustomerIDRow, error) {
+	rows, err := q.db.Query(ctx, getOrdersByCustomerID, customerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetOrdersByCustomerIDRow
+	for rows.Next() {
+		var i GetOrdersByCustomerIDRow
+		if err := rows.Scan(&i.ID, &i.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getProducts = `-- name: GetProducts :many

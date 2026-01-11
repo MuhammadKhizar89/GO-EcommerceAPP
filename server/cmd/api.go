@@ -38,13 +38,15 @@ func (app *application) mount() http.Handler {
 	// user->handler GET /products->service get products->repo SELECT * FROM products
 	productService := products.NewService(repo.New(app.dbConn))
 	handler := products.NewHandler(productService)
+	orderService := orders.NewService(repo.New(app.dbConn), app.dbConn)
+	ordersHandler := orders.NewHandler(orderService)
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("hello world"))
 	})
 	r.Get("/products", handler.ListProducts)
-	orderService := orders.NewService(repo.New(app.dbConn), app.dbConn)
-	ordersHandler := orders.NewHandler(orderService)
+	r.Post("/product", handler.CreateProduct)
 	r.Post("/orders", ordersHandler.PlaceOrder)
+	r.Get("/orders/{customerId}", ordersHandler.GetAllOrders)
 	return r
 }
 
