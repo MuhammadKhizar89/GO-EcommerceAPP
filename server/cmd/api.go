@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	repo "server/internal/adapters/postgresql/sqlc"
+	"server/internal/orders"
 	"server/internal/products"
 	"time"
 
@@ -41,6 +42,9 @@ func (app *application) mount() http.Handler {
 		w.Write([]byte("hello world"))
 	})
 	r.Get("/products", handler.ListProducts)
+	orderService := orders.NewService(repo.New(app.dbConn), app.dbConn)
+	ordersHandler := orders.NewHandler(orderService)
+	r.Post("/orders", ordersHandler.PlaceOrder)
 	return r
 }
 
