@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	repo "server/internal/adapters/postgresql/sqlc"
+	"server/internal/auth"
 	"server/internal/orders"
 	"server/internal/products"
 	"time"
@@ -36,15 +37,17 @@ func (app *application) mount() http.Handler {
 	// if request takes more than 60 seconds, timeout then just stop
 	r.Use(middleware.Timeout(60 * time.Second))
 	// user->handler GET /products->service get products->repo SELECT * FROM products
+	authService := auth.NewAuthService(repo.New(app.dbConn))
+	authHandler := auth.NewAuthHandler(authService)
 	productService := products.NewService(repo.New(app.dbConn))
-	handler := products.NewHandler(productService)
+	productHandler := products.NewHandler(productService)
 	orderService := orders.NewService(repo.New(app.dbConn), app.dbConn)
 	ordersHandler := orders.NewHandler(orderService)
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("hello world"))
 	})
-	r.Get("/products", handler.ListProducts)
-	r.Post("/product", handler.CreateProduct)
+	r.Get("/products", productHandler.ListProducts)
+	r.Post("/product", productHandler.CreateProduct)
 	r.Post("/orders", ordersHandler.PlaceOrder)
 	r.Get("/orders/{customerId}", ordersHandler.GetAllOrders)
 	return r

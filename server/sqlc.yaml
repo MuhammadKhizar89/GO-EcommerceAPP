@@ -10,5 +10,5 @@ sql:
         sql_package: "pgx/v5"
         emit_json_tags: true
         emit_interface: true
-
+        emit_pointers_for_null_types: true
         #so sqlc will generate the code type and all things perfectly 

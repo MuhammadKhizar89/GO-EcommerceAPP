@@ -31,4 +31,11 @@ type Product struct {
 	Price     pgtype.Numeric   `json:"price"`
 	Quantity  int32            `json:"quantity"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
+	Image     *string          `json:"image"`
+}
+
+type User struct {
+	ID       int32  `json:"id"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }

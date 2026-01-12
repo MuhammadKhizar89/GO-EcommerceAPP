@@ -50,11 +50,16 @@ func (s *svc) PlaceOrder(ctx context.Context, tempOrder CreateOrderParams) (repo
 		if product.Quantity < int32(item.Quantity) {
 			return repo.Order{}, fmt.Errorf("product %d is out of stock", item.ProductID)
 		}
+
+		price := int32(0)
+		if product.Price.Valid && !product.Price.NaN && product.Price.Int != nil {
+			price = int32(product.Price.Int.Int64())
+		}
 		_, err = qtx.CreateOrderItem(ctx, repo.CreateOrderItemParams{
 			OrderID:   order.ID,
 			ProductID: int32(item.ProductID),
 			Quantity:  int32(item.Quantity),
-			Price:     int32(item.Price),
+			Price:     int32(item.Quantity) * int32(price),
 		})
 		if err != nil {
 			return repo.Order{}, err
@@ -107,6 +112,7 @@ func (s *svc) GetOrdersByCustomerID(ctx context.Context, customerID int32) ([]Or
 			Name:     p.Name,
 			Price:    price,
 			Quantity: p.Quantity,
+			Image:    p.Image,
 		}
 	}
 

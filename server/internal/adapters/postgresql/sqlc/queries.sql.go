@@ -12,7 +12,9 @@ import (
 )
 
 const createOrder = `-- name: CreateOrder :one
-INSERT INTO orders (customer_id) VALUES ($1) RETURNING id, customer_id, created_at, updated_at
+INSERT INTO orders (customer_id)
+VALUES ($1)
+RETURNING id, customer_id, created_at, updated_at
 `
 
 func (q *Queries) CreateOrder(ctx context.Context, customerID int32) (Order, error) {
@@ -28,7 +30,9 @@ func (q *Queries) CreateOrder(ctx context.Context, customerID int32) (Order, err
 }
 
 const createOrderItem = `-- name: CreateOrderItem :one
-INSERT INTO order_items (order_id, product_id, quantity, price) VALUES ($1, $2, $3, $4) RETURNING id, order_id, product_id, quantity, price, created_at, updated_at
+INSERT INTO order_items (order_id, product_id, quantity, price)
+VALUES ($1, $2, $3, $4)
+RETURNING id, order_id, product_id, quantity, price, created_at, updated_at
 `
 
 type CreateOrderItemParams struct {
@@ -59,17 +63,25 @@ func (q *Queries) CreateOrderItem(ctx context.Context, arg CreateOrderItemParams
 }
 
 const createProduct = `-- name: CreateProduct :one
-INSERT INTO products (name, price, quantity) VALUES ($1, $2, $3) RETURNING id, name, price, quantity, created_at
+INSERT INTO products (name, price, image, quantity)
+VALUES ($1, $2, $3, $4)
+RETURNING id, name, price, quantity, created_at, image
 `
 
 type CreateProductParams struct {
 	Name     string         `json:"name"`
 	Price    pgtype.Numeric `json:"price"`
+	Image    *string        `json:"image"`
 	Quantity int32          `json:"quantity"`
 }
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error) {
-	row := q.db.QueryRow(ctx, createProduct, arg.Name, arg.Price, arg.Quantity)
+	row := q.db.QueryRow(ctx, createProduct,
+		arg.Name,
+		arg.Price,
+		arg.Image,
+		arg.Quantity,
+	)
 	var i Product
 	err := row.Scan(
 		&i.ID,
@@ -77,12 +89,36 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		&i.Price,
 		&i.Quantity,
 		&i.CreatedAt,
+		&i.Image,
 	)
 	return i, err
 }
 
+const createUser = `-- name: CreateUser :one
+INSERT INTO users (email, password)
+VALUES ($1, $2)
+RETURNING id, email
+`
+
+type CreateUserParams struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type CreateUserRow struct {
+	ID    int32  `json:"id"`
+	Email string `json:"email"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
+	row := q.db.QueryRow(ctx, createUser, arg.Email, arg.Password)
+	var i CreateUserRow
+	err := row.Scan(&i.ID, &i.Email)
+	return i, err
+}
+
 const findProductByID = `-- name: FindProductByID :one
-SELECT id, name, price, quantity, created_at
+SELECT id, name, price, quantity, created_at, image
 FROM products
 WHERE id = $1
 `
@@ -96,14 +132,19 @@ func (q *Queries) FindProductByID(ctx context.Context, id int32) (Product, error
 		&i.Price,
 		&i.Quantity,
 		&i.CreatedAt,
+		&i.Image,
 	)
 	return i, err
 }
 
 const findProductsByIDs = `-- name: FindProductsByIDs :many
-SELECT id, name, price, quantity
+SELECT id,
+    name,
+    price,
+    quantity,
+    image
 FROM products
-WHERE id = ANY($1::int[])
+WHERE id = ANY($1::int [])
 `
 
 type FindProductsByIDsRow struct {
@@ -111,6 +152,7 @@ type FindProductsByIDsRow struct {
 	Name     string         `json:"name"`
 	Price    pgtype.Numeric `json:"price"`
 	Quantity int32          `json:"quantity"`
+	Image    *string        `json:"image"`
 }
 
 func (q *Queries) FindProductsByIDs(ctx context.Context, dollar_1 []int32) ([]FindProductsByIDsRow, error) {
@@ -127,6 +169,7 @@ func (q *Queries) FindProductsByIDs(ctx context.Context, dollar_1 []int32) ([]Fi
 			&i.Name,
 			&i.Price,
 			&i.Quantity,
+			&i.Image,
 		); err != nil {
 			return nil, err
 		}
@@ -139,7 +182,11 @@ func (q *Queries) FindProductsByIDs(ctx context.Context, dollar_1 []int32) ([]Fi
 }
 
 const getOrderItemsByOrderID = `-- name: GetOrderItemsByOrderID :many
-SELECT id, order_id, product_id, quantity, price
+SELECT id,
+    order_id,
+    product_id,
+    quantity,
+    price
 FROM order_items
 WHERE order_id = $1
 `
@@ -179,7 +226,8 @@ func (q *Queries) GetOrderItemsByOrderID(ctx context.Context, orderID int32) ([]
 }
 
 const getOrdersByCustomerID = `-- name: GetOrdersByCustomerID :many
-SELECT id, created_at
+SELECT id,
+    created_at
 FROM orders
 WHERE customer_id = $1
 ORDER BY created_at DESC
@@ -211,7 +259,7 @@ func (q *Queries) GetOrdersByCustomerID(ctx context.Context, customerID int32) (
 }
 
 const getProducts = `-- name: GetProducts :many
-SELECT id, name, price, quantity, created_at
+SELECT id, name, price, quantity, created_at, image
 FROM products
 `
 
@@ -230,6 +278,7 @@ func (q *Queries) GetProducts(ctx context.Context) ([]Product, error) {
 			&i.Price,
 			&i.Quantity,
 			&i.CreatedAt,
+			&i.Image,
 		); err != nil {
 			return nil, err
 		}
@@ -239,4 +288,17 @@ func (q *Queries) GetProducts(ctx context.Context) ([]Product, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, email, password
+FROM users
+WHERE email = $1
+`
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByEmail, email)
+	var i User
+	err := row.Scan(&i.ID, &i.Email, &i.Password)
+	return i, err
 }

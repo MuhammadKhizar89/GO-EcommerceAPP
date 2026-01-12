@@ -9,7 +9,6 @@ import (
 type orderItem struct {
 	ProductID int `json:"productId"`
 	Quantity  int `json:"quantity"`
-	Price     int `json:"price"`
 }
 type CreateOrderParams struct {
 	CustomerID int         `json:"customerId"`

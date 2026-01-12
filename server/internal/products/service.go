@@ -60,6 +60,7 @@ func (s *svc) CreateProduct(
 	return s.repo.CreateProduct(ctx, repo.CreateProductParams{
 		Name:     tempProduct.Name,
 		Price:    price,
+		Image:    tempProduct.Image,
 		Quantity: tempProduct.Quantity,
 	})
 }
