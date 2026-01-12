@@ -5,6 +5,7 @@ import (
 	"net/http"
 	repo "server/internal/adapters/postgresql/sqlc"
 	"server/internal/auth"
+	authMiddleware "server/internal/middleware"
 	"server/internal/orders"
 	"server/internal/products"
 	"time"
@@ -46,10 +47,14 @@ func (app *application) mount() http.Handler {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("hello world"))
 	})
+	r.Post("/login", authHandler.Login)
+	r.Post("/signup", authHandler.Signup)
 	r.Get("/products", productHandler.ListProducts)
-	r.Post("/product", productHandler.CreateProduct)
-	r.Post("/orders", ordersHandler.PlaceOrder)
-	r.Get("/orders/{customerId}", ordersHandler.GetAllOrders)
+	r.Route("/orders", func(r chi.Router) {
+		r.Use(authMiddleware.AuthMiddleware)
+		r.Post("/", ordersHandler.PlaceOrder)
+		r.Get("/", ordersHandler.GetAllOrders)
+	})
 	return r
 }
 

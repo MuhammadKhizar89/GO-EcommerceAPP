@@ -21,7 +21,7 @@ func (h *handler) ListProducts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.WriteJson(w, http.StatusOK, response.GernalResponse{Success: true, Message: "success", Data: products})
+	response.WriteJson(w, http.StatusOK, response.GernalResponse{Success: true, Message: "Products fetched successfully", Data: products})
 }
 
 func (h *handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
@@ -35,5 +35,5 @@ func (h *handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		response.WriteJson(w, http.StatusInternalServerError, response.GernalResponse{Success: false, Message: err.Error(), Data: nil})
 		return
 	}
-	response.WriteJson(w, http.StatusOK, response.GernalResponse{Success: true, Message: "success", Data: product})
+	response.WriteJson(w, http.StatusOK, response.GernalResponse{Success: true, Message: "Product created successfully", Data: product})
 }

@@ -26,7 +26,7 @@ func NewService(repo repo.Querier, db *pgx.Conn) Service {
 func (s *svc) PlaceOrder(ctx context.Context, tempOrder CreateOrderParams) (repo.Order, error) {
 
 	if tempOrder.CustomerID == 0 {
-		return repo.Order{}, fmt.Errorf("customer id is required")
+		return repo.Order{}, fmt.Errorf("customer id not found")
 	}
 	if len(tempOrder.Items) == 0 {
 		return repo.Order{}, fmt.Errorf("items are required")

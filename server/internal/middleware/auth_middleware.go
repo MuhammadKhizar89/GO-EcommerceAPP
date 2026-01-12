@@ -3,7 +3,7 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"os"
+	"server/internal/env"
 	"server/internal/response"
 	"strings"
 
@@ -21,7 +21,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 
 		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (any, error) {
-			return []byte(os.Getenv("JWT_SECRET")), nil
+			return []byte(env.GetEnv("JWT_SECRET", "")), nil
 		})
 
 		if err != nil || !token.Valid {
@@ -31,7 +31,6 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		claims := token.Claims.(jwt.MapClaims)
 		userID := int32(claims["sub"].(float64))
-
 		ctx := context.WithValue(r.Context(), "userID", userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

@@ -3,13 +3,14 @@ package auth
 import (
 	"encoding/json"
 	"net/http"
+	"server/internal/response"
 )
 
 type AuthHandler struct {
-	service AuthService
+	service Service
 }
 
-func NewAuthHandler(s AuthService) *AuthHandler {
+func NewAuthHandler(s Service) *AuthHandler {
 	return &AuthHandler{service: s}
 }
 
@@ -22,13 +23,23 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	var req AuthRequest
 	json.NewDecoder(r.Body).Decode(&req)
 
-	err := h.service.Signup(r.Context(), req.Email, req.Password)
+	token, err := h.service.Signup(r.Context(), req.Email, req.Password)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		response.WriteJson(w, http.StatusBadRequest, response.GernalResponse{
+			Success: false,
+			Message: err.Error(),
+			Data:    nil,
+		})
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	response.WriteJson(w, http.StatusOK, response.GernalResponse{
+		Success: true,
+		Message: "User created successfully",
+		Data: map[string]string{
+			"token": token,
+		},
+	})
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -36,12 +47,21 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	json.NewDecoder(r.Body).Decode(&req)
 
 	token, err := h.service.Login(r.Context(), req.Email, req.Password)
+
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		response.WriteJson(w, http.StatusBadRequest, response.GernalResponse{
+			Success: false,
+			Message: err.Error(),
+			Data:    nil,
+		})
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]string{
-		"token": token,
+	response.WriteJson(w, http.StatusOK, response.GernalResponse{
+		Success: true,
+		Message: "success",
+		Data: map[string]string{
+			"token": token,
+		},
 	})
 }

@@ -1,12 +1,10 @@
 package orders
 
 import (
+	"fmt"
 	"net/http"
 	"server/internal/request"
 	"server/internal/response"
-	"strconv"
-
-	"github.com/go-chi/chi/v5"
 )
 
 type handler struct {
@@ -18,28 +16,33 @@ func NewHandler(service Service) *handler {
 }
 
 func (h *handler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value("userID").(int32)
+	if !ok {
+		response.WriteJson(w, http.StatusUnauthorized,
+			response.GernalResponse{Success: false, Message: "unauthorized", Data: nil})
+		return
+	}
 	var tempOrder CreateOrderParams
 	if err := request.ReadJSON(r, &tempOrder); err != nil {
 		response.WriteJson(w, http.StatusBadRequest, response.GernalResponse{Success: false, Message: err.Error(), Data: nil})
 		return
 	}
+	fmt.Println(tempOrder, userID)
+	//not getting the userId
+	tempOrder.CustomerID = int(userID)
 	createdOrder, err := h.service.PlaceOrder(r.Context(), tempOrder)
 	if err != nil {
 		response.WriteJson(w, http.StatusInternalServerError, response.GernalResponse{Success: false, Message: err.Error(), Data: nil})
 		return
 	}
-	response.WriteJson(w, http.StatusOK, response.GernalResponse{Success: true, Message: "success", Data: createdOrder})
+	response.WriteJson(w, http.StatusOK, response.GernalResponse{Success: true, Message: "Order placed successfully", Data: createdOrder})
 }
 func (h *handler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 
-	customerIDStr := chi.URLParam(r, "customerId")
-	customerID, err := strconv.Atoi(customerIDStr)
-	if err != nil {
-		response.WriteJson(w, http.StatusBadRequest, response.GernalResponse{
-			Success: false,
-			Message: "invalid customer id",
-			Data:    nil,
-		})
+	customerID, ok := r.Context().Value("userID").(int32)
+	if !ok {
+		response.WriteJson(w, http.StatusUnauthorized,
+			response.GernalResponse{Success: false, Message: "unauthorized", Data: nil})
 		return
 	}
 
@@ -55,7 +58,7 @@ func (h *handler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 
 	response.WriteJson(w, http.StatusOK, response.GernalResponse{
 		Success: true,
-		Message: "success",
+		Message: "Orders fetched successfully",
 		Data:    orders,
 	})
 }
