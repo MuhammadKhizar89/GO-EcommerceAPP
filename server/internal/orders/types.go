@@ -2,7 +2,6 @@
 package orders
 
 import (
-	"server/internal/products"
 	"time"
 )
 
@@ -15,12 +14,18 @@ type CreateOrderParams struct {
 	Items      []orderItem `json:"items"`
 }
 
+type Product struct {
+	ID    int32   `json:"id"`
+	Name  string  `json:"name"`
+	Image *string `json:"image"`
+}
+
 // OrderItem represents one item in an order
 type OrderItem struct {
-	ID       int32            `json:"id"`
-	Product  products.Product `json:"product"`
-	Quantity int32            `json:"quantity"`
-	Price    int32            `json:"price"`
+	ID       int32   `json:"id"`
+	Product  Product `json:"product"`
+	Quantity int32   `json:"quantity"`
+	Price    int32   `json:"price"`
 }
 
 // OrderWithItems represents an order with all its items

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	repo "server/internal/adapters/postgresql/sqlc"
-	"server/internal/products"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -47,6 +46,12 @@ func (s *svc) PlaceOrder(ctx context.Context, tempOrder CreateOrderParams) (repo
 		if err != nil {
 			return repo.Order{}, err
 		}
+		if item.Quantity == 0 {
+			return repo.Order{}, fmt.Errorf("quantity is required")
+		}
+		if item.Quantity > 10 {
+			return repo.Order{}, fmt.Errorf("quantity cannot be greater than 10")
+		}
 		if product.Quantity < int32(item.Quantity) {
 			return repo.Order{}, fmt.Errorf("product %d is out of stock", item.ProductID)
 		}
@@ -55,6 +60,13 @@ func (s *svc) PlaceOrder(ctx context.Context, tempOrder CreateOrderParams) (repo
 		if product.Price.Valid && !product.Price.NaN && product.Price.Int != nil {
 			price = int32(product.Price.Int.Int64())
 		}
+		_, err = qtx.UpdateProduct(ctx, repo.UpdateProductParams{
+			ID:       int32(item.ProductID),
+			Price:    product.Price,
+			Name:     product.Name,
+			Image:    product.Image,
+			Quantity: product.Quantity - int32(item.Quantity),
+		})
 		_, err = qtx.CreateOrderItem(ctx, repo.CreateOrderItemParams{
 			OrderID:   order.ID,
 			ProductID: int32(item.ProductID),
@@ -70,15 +82,14 @@ func (s *svc) PlaceOrder(ctx context.Context, tempOrder CreateOrderParams) (repo
 }
 
 func (s *svc) GetOrdersByCustomerID(ctx context.Context, customerID int32) ([]OrderWithItems, error) {
-	// 1️⃣ Get all orders
+
 	orders, err := s.repo.GetOrdersByCustomerID(ctx, customerID)
 	if err != nil {
 		return nil, fmt.Errorf("fetching orders: %w", err)
 	}
 
-	// 2️⃣ Collect all product IDs
 	productIDsMap := make(map[int32]struct{})
-	orderItemsMap := make(map[int32][]repo.GetOrderItemsByOrderIDRow) // map[orderID]items
+	orderItemsMap := make(map[int32][]repo.GetOrderItemsByOrderIDRow)
 	for _, o := range orders {
 		itemsRows, err := s.repo.GetOrderItemsByOrderID(ctx, o.ID)
 		if err != nil {
@@ -95,28 +106,20 @@ func (s *svc) GetOrdersByCustomerID(ctx context.Context, customerID int32) ([]Or
 		productIDs = append(productIDs, id)
 	}
 
-	// 3️⃣ Fetch all products in bulk
 	productsList, err := s.repo.FindProductsByIDs(ctx, productIDs)
 	if err != nil {
 		return nil, fmt.Errorf("fetching products: %w", err)
 	}
 
-	productMap := make(map[int32]products.Product)
+	productMap := make(map[int32]Product)
 	for _, p := range productsList {
-		price := int32(0)
-		if p.Price.Valid && !p.Price.NaN && p.Price.Int != nil {
-			price = int32(p.Price.Int.Int64())
-		}
-		productMap[p.ID] = products.Product{
-			ID:       p.ID,
-			Name:     p.Name,
-			Price:    price,
-			Quantity: p.Quantity,
-			Image:    p.Image,
+		productMap[p.ID] = Product{
+			ID:    p.ID,
+			Name:  p.Name,
+			Image: p.Image,
 		}
 	}
 
-	// 4️⃣ Build response
 	result := make([]OrderWithItems, 0, len(orders))
 	for _, o := range orders {
 		itemsRows := orderItemsMap[o.ID]

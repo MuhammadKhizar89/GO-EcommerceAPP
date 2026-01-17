@@ -302,3 +302,41 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	err := row.Scan(&i.ID, &i.Email, &i.Password)
 	return i, err
 }
+
+const updateProduct = `-- name: UpdateProduct :one
+UPDATE products
+SET name = $2,
+    price = $3,
+    quantity = $4,
+    image = $5
+WHERE id = $1
+RETURNING id, name, price, quantity, created_at, image
+`
+
+type UpdateProductParams struct {
+	ID       int32          `json:"id"`
+	Name     string         `json:"name"`
+	Price    pgtype.Numeric `json:"price"`
+	Quantity int32          `json:"quantity"`
+	Image    *string        `json:"image"`
+}
+
+func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error) {
+	row := q.db.QueryRow(ctx, updateProduct,
+		arg.ID,
+		arg.Name,
+		arg.Price,
+		arg.Quantity,
+		arg.Image,
+	)
+	var i Product
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Price,
+		&i.Quantity,
+		&i.CreatedAt,
+		&i.Image,
+	)
+	return i, err
+}

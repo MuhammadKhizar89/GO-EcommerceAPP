@@ -50,3 +50,12 @@ RETURNING id, email;
 SELECT id, email, password
 FROM users
 WHERE email = $1;
+
+-- name: UpdateProduct :one
+UPDATE products
+SET name = $2,
+    price = $3,
+    quantity = $4,
+    image = $5
+WHERE id = $1
+RETURNING *;

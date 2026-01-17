@@ -1,8 +1,8 @@
 package orders
 
 import (
-	"fmt"
 	"net/http"
+	"server/internal/middleware"
 	"server/internal/request"
 	"server/internal/response"
 )
@@ -16,7 +16,7 @@ func NewHandler(service Service) *handler {
 }
 
 func (h *handler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value("userID").(int32)
+	customerID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		response.WriteJson(w, http.StatusUnauthorized,
 			response.GernalResponse{Success: false, Message: "unauthorized", Data: nil})
@@ -27,9 +27,8 @@ func (h *handler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 		response.WriteJson(w, http.StatusBadRequest, response.GernalResponse{Success: false, Message: err.Error(), Data: nil})
 		return
 	}
-	fmt.Println(tempOrder, userID)
-	//not getting the userId
-	tempOrder.CustomerID = int(userID)
+	tempOrder.CustomerID = int(customerID)
+
 	createdOrder, err := h.service.PlaceOrder(r.Context(), tempOrder)
 	if err != nil {
 		response.WriteJson(w, http.StatusInternalServerError, response.GernalResponse{Success: false, Message: err.Error(), Data: nil})
@@ -39,7 +38,7 @@ func (h *handler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 }
 func (h *handler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 
-	customerID, ok := r.Context().Value("userID").(int32)
+	customerID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		response.WriteJson(w, http.StatusUnauthorized,
 			response.GernalResponse{Success: false, Message: "unauthorized", Data: nil})
