@@ -1,28 +1,29 @@
-package orders
+package handlers
 
 import (
 	"net/http"
-	"server/internal/middleware"
-	"server/internal/request"
-	"server/internal/response"
+	orders "server/internal/domain/order"
+	"server/internal/transport/https/handlers/middleware"
+	"server/internal/util/request"
+	"server/internal/util/response"
 )
 
-type handler struct {
-	service Service
+type orderHandler struct {
+	service orders.Service
 }
 
-func NewHandler(service Service) *handler {
-	return &handler{service}
+func NewOrderHandler(service orders.Service) *orderHandler {
+	return &orderHandler{service}
 }
 
-func (h *handler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
+func (h *orderHandler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 	customerID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		response.WriteJson(w, http.StatusUnauthorized,
 			response.GernalResponse{Success: false, Message: "unauthorized", Data: nil})
 		return
 	}
-	var tempOrder CreateOrderParams
+	var tempOrder orders.CreateOrderParams
 	if err := request.ReadJSON(r, &tempOrder); err != nil {
 		response.WriteJson(w, http.StatusBadRequest, response.GernalResponse{Success: false, Message: err.Error(), Data: nil})
 		return
@@ -36,7 +37,7 @@ func (h *handler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 	}
 	response.WriteJson(w, http.StatusOK, response.GernalResponse{Success: true, Message: "Order placed successfully", Data: createdOrder})
 }
-func (h *handler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
+func (h *orderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 
 	customerID, ok := middleware.GetUserID(r.Context())
 	if !ok {

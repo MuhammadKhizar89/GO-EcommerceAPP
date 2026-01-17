@@ -1,26 +1,27 @@
-package auth
+package handlers
 
 import (
 	"encoding/json"
 	"net/http"
-	"server/internal/response"
+	"server/internal/domain/auth"
+	"server/internal/util/response"
 )
 
-type AuthHandler struct {
-	service Service
+type authHandler struct {
+	service auth.Service
 }
 
-func NewAuthHandler(s Service) *AuthHandler {
-	return &AuthHandler{service: s}
+func NewAuthHandler(s auth.Service) *authHandler {
+	return &authHandler{service: s}
 }
 
-type AuthRequest struct {
+type authRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
-	var req AuthRequest
+func (h *authHandler) Signup(w http.ResponseWriter, r *http.Request) {
+	var req authRequest
 	json.NewDecoder(r.Body).Decode(&req)
 
 	token, err := h.service.Signup(r.Context(), req.Email, req.Password)
@@ -42,8 +43,8 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var req AuthRequest
+func (h *authHandler) Login(w http.ResponseWriter, r *http.Request) {
+	var req authRequest
 	json.NewDecoder(r.Body).Decode(&req)
 
 	token, err := h.service.Login(r.Context(), req.Email, req.Password)

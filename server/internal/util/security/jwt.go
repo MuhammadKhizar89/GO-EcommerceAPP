@@ -2,7 +2,7 @@ package security
 
 import (
 	"errors"
-	"server/internal/env"
+	"server/internal/util/env"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"

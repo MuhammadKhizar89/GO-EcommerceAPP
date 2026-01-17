@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	repo "server/internal/adapters/postgresql/sqlc"
-	"server/internal/security"
+	"server/internal/util/security"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )

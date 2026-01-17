@@ -5,7 +5,7 @@ import (
 	"log"
 	"log/slog"
 	"os"
-	"server/internal/env"
+	"server/internal/util/env"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"

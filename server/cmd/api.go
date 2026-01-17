@@ -4,10 +4,11 @@ import (
 	"log"
 	"net/http"
 	repo "server/internal/adapters/postgresql/sqlc"
-	"server/internal/auth"
-	authMiddleware "server/internal/middleware"
-	"server/internal/orders"
-	"server/internal/products"
+	"server/internal/domain/auth"
+	orders "server/internal/domain/order"
+	products "server/internal/domain/product"
+	"server/internal/transport/https/handlers"
+	customMiddleware "server/internal/transport/https/handlers/middleware"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -37,13 +38,15 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Recoverer)
 	// if request takes more than 60 seconds, timeout then just stop
 	r.Use(middleware.Timeout(60 * time.Second))
+
 	// user->handler GET /products->service get products->repo SELECT * FROM products
 	authService := auth.NewAuthService(repo.New(app.dbConn))
-	authHandler := auth.NewAuthHandler(authService)
-	productService := products.NewService(repo.New(app.dbConn))
-	productHandler := products.NewHandler(productService)
 	orderService := orders.NewService(repo.New(app.dbConn), app.dbConn)
-	ordersHandler := orders.NewHandler(orderService)
+	productService := products.NewService(repo.New(app.dbConn))
+	productHandler := handlers.NewProductHandler(productService)
+	authHandler := handlers.NewAuthHandler(authService)
+	ordersHandler := handlers.NewOrderHandler(orderService)
+
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("hello world"))
 	})
@@ -51,7 +54,7 @@ func (app *application) mount() http.Handler {
 	r.Post("/signup", authHandler.Signup)
 	r.Get("/products", productHandler.ListProducts)
 	r.Route("/orders", func(r chi.Router) {
-		r.Use(authMiddleware.AuthMiddleware)
+		r.Use(customMiddleware.AuthMiddleware)
 		r.Post("/", ordersHandler.PlaceOrder)
 		r.Get("/", ordersHandler.GetAllOrders)
 	})

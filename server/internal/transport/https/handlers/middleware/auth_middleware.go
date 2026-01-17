@@ -2,10 +2,9 @@ package middleware
 
 import (
 	"net/http"
+	"server/internal/util/env"
+	"server/internal/util/response"
 	"strings"
-
-	"server/internal/env"
-	"server/internal/response"
 
 	"github.com/golang-jwt/jwt/v4"
 )
