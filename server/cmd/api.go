@@ -38,6 +38,7 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Recoverer)
 	// if request takes more than 60 seconds, timeout then just stop
 	r.Use(middleware.Timeout(60 * time.Second))
+	r.Use(customMiddleware.CORSMiddleware) // Enable CORS
 
 	// user->handler GET /products->service get products->repo SELECT * FROM products
 	authService := auth.NewAuthService(repo.New(app.dbConn))
@@ -53,6 +54,7 @@ func (app *application) mount() http.Handler {
 	r.Post("/login", authHandler.Login)
 	r.Post("/signup", authHandler.Signup)
 	r.Get("/products", productHandler.ListProducts)
+	r.Post("/products", productHandler.CreateProduct)
 	r.Route("/orders", func(r chi.Router) {
 		r.Use(customMiddleware.AuthMiddleware)
 		r.Post("/", ordersHandler.PlaceOrder)
