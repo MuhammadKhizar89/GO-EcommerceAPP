@@ -56,10 +56,12 @@ func (s *svc) PlaceOrder(ctx context.Context, tempOrder CreateOrderParams) (repo
 			return repo.Order{}, fmt.Errorf("product %d is out of stock", item.ProductID)
 		}
 
-		price := int32(0)
-		if product.Price.Valid && !product.Price.NaN && product.Price.Int != nil {
-			price = int32(product.Price.Int.Int64())
+		var price float64
+		if product.Price.Valid {
+			f8, _ := product.Price.Float64Value()
+			price = f8.Float64
 		}
+		orderTotal := int32(float64(item.Quantity) * price)
 		_, err = qtx.UpdateProduct(ctx, repo.UpdateProductParams{
 			ID:       int32(item.ProductID),
 			Price:    product.Price,
@@ -71,7 +73,7 @@ func (s *svc) PlaceOrder(ctx context.Context, tempOrder CreateOrderParams) (repo
 			OrderID:   order.ID,
 			ProductID: int32(item.ProductID),
 			Quantity:  int32(item.Quantity),
-			Price:     int32(item.Quantity) * int32(price),
+			Price:     orderTotal,
 		})
 		if err != nil {
 			return repo.Order{}, err
