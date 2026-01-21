@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { authAPI } from '../api/auth'
 import './Auth.css'
 
@@ -18,9 +19,12 @@ export default function Login({ onLogin }) {
     try {
       const response = await authAPI.login(email, password)
       onLogin(response.data.data.token)
+      toast.success('Login successful!')
       navigate('/products')
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.')
+      const errorMessage = err.response?.data?.message || 'Login failed. Please try again.'
+      setError(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }

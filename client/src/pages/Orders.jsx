@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { ordersAPI } from '../api/orders'
 import './Orders.css'
 
@@ -24,7 +25,9 @@ export default function Orders() {
       const response = await ordersAPI.getAllOrders()
       setOrders(response.data.data || [])
     } catch (err) {
-      setError('Failed to load orders')
+      const errorMessage = 'Failed to load orders'
+      setError(errorMessage)
+      toast.error(errorMessage)
       console.error(err)
     } finally {
       setLoading(false)

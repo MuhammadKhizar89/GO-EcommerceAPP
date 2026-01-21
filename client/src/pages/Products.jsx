@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { productsAPI } from '../api/products'
 import { ordersAPI } from '../api/orders'
 import './Products.css'
@@ -46,7 +47,7 @@ export default function Products() {
 
   const handlePlaceOrder = async () => {
     if (Object.keys(cart).length === 0) {
-      alert('Please add items to cart')
+      toast.error('Please add items to cart')
       return
     }
 
@@ -63,11 +64,12 @@ export default function Products() {
         quantity: quantity,
       }))
       await ordersAPI.placeOrder({ items })
-      alert('Order placed successfully!')
+      toast.success('Order placed successfully!')
       setCart({})
       navigate('/orders')
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to place order')
+      const errorMessage = err.response?.data?.message || 'Failed to place order'
+      toast.error(errorMessage)
     } finally {
       setIsOrdering(false)
     }
